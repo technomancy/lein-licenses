@@ -1,7 +1,9 @@
 (ns leiningen.licenses
   (:require [leiningen.core.classpath :as classpath]
             [cemerick.pomegranate.aether :as aether]
+            [clojure.java.io :as io]
             [clojure.pprint :as pp]
+            [clojure.string :as string]
             [clojure.xml :as xml]
             [clojure.zip :as zip])
   (:import (java.util.jar JarFile)))
@@ -48,6 +50,21 @@
         pom (.getEntry jar pom-path)]
     (and pom (xml/parse (.getInputStream jar pom)))))
 
+(def ^:private license-file-names #{"LICENSE" "LICENSE.txt" "META-INF/LICENSE"
+                                    "META-INF/LICENSE.txt" "license/LICENSE"})
+
+(defn- get-entry [jar name]
+  (.getEntry jar name))
+
+(defn- try-raw-license [file]
+  (try
+    (let [jar (JarFile. file)
+          entry (some #(.getEntry jar %) license-file-names)]
+      (with-open [rdr (io/reader (.getInputStream jar entry))]
+        (string/trim (first (remove string/blank? (line-seq rdr))))))
+    (catch Exception e
+      (println "   " (class e) (.getMessage e)))))
+
 (defn- get-licenses [dep file]
   (if-let [pom (get-pom dep file)]
     (->> (iterate get-parent pom)
@@ -57,7 +74,8 @@
          ;; TODO: this might be trimming additional licenses?
          (map (comp first :content first :content))
          (filter (tag :name))
-         first :content first)))
+         first :content first)
+    (try-raw-license file)))
 
 (defn licenses
   "List the license of each of your dependencies."
