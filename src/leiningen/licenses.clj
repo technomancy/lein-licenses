@@ -25,7 +25,8 @@
                       (filter #(.endsWith (str %) ".pom")))]
       (xml/parse file))
     (catch Exception e
-      (println "   " (class e) (.getMessage e)))))
+      (binding [*out* *err*]
+        (println "#   " (class e) (.getMessage e))))))
 
 (defn- get-parent [pom]
   (if-let [parent-tag (->> pom
@@ -63,7 +64,8 @@
       (with-open [rdr (io/reader (.getInputStream jar entry))]
         (string/trim (first (remove string/blank? (line-seq rdr))))))
     (catch Exception e
-      (println "   " (class e) (.getMessage e)))))
+      (binding [*out* *err*]
+        (println "#   " (class e) (.getMessage e))))))
 
 (defn- get-licenses [dep file]
   (if-let [pom (get-pom dep file)]
@@ -77,10 +79,17 @@
          first :content first)
     (try-raw-license file)))
 
+(defn quote [text]
+  (str \" (clojure.string/replace text #"\"" "\"\"") \"))
+
 (defn licenses
   "List the license of each of your dependencies."
   [project]
   (let [deps (#'classpath/get-dependencies :dependencies project)
         deps (zipmap (keys deps) (aether/dependency-files deps))]
     (doseq [[[dep version] file] deps]
-      (println (pr-str dep) \- (or (get-licenses dep file) "Unknown")))))
+      (let [line [(pr-str dep)
+                  version
+                  (or (get-licenses dep file) "Unknown")]]
+
+        (println (string/join "," (map quote line)))))))
