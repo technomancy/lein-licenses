@@ -1,5 +1,6 @@
 (ns leiningen.licenses
   (:require [leiningen.core.classpath :as classpath]
+            [leiningen.core.main :as main]
             [cemerick.pomegranate.aether :as aether]
             [clojure.java.io :as io]
             [clojure.pprint :as pp]
@@ -79,17 +80,39 @@
          first :content first)
     (try-raw-license file)))
 
-(defn quote [text]
-  (str \" (clojure.string/replace text #"\"" "\"\"") \"))
+
+(def formatters
+  {":text"
+   (fn [line]
+     (string/join " - " line))
+
+   ":csv"
+   (fn [line]
+     (let [quote-csv
+           (fn [text]
+             (str \" (clojure.string/replace text #"\"" "\"\"") \"))]
+       (string/join "," (map quote-csv line))))})
+
 
 (defn licenses
-  "List the license of each of your dependencies."
-  [project]
-  (let [deps (#'classpath/get-dependencies :dependencies project)
-        deps (zipmap (keys deps) (aether/dependency-files deps))]
-    (doseq [[[dep version] file] deps]
-      (let [line [(pr-str dep)
-                  version
-                  (or (get-licenses dep file) "Unknown")]]
+  "List the license of each of your dependencies.
 
-        (println (string/join "," (map quote line)))))))
+USAGE: lein licenses [:text]
+Show license information in the default text format
+
+USAGE lein licenses :csv
+Show licenses in CSV format"
+
+  ([project]
+     (licenses project ":text"))
+
+  ([project output-style]
+     (if-let [format-fn (formatters output-style)]
+       (let [deps (#'classpath/get-dependencies :dependencies project)
+             deps (zipmap (keys deps) (aether/dependency-files deps))]
+         (doseq [[[dep version] file] deps]
+           (let [line [(pr-str dep)
+                       version
+                       (or (get-licenses dep file) "Unknown")]]
+             (println (format-fn line)))))
+       (main/abort "unknown formatter"))))
