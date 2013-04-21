@@ -7,7 +7,7 @@ as well as files named `LICENSE.txt`, etc. inside the jar.
 
 ## Usage
 
-Put `[lein-licenses "0.1.0"]` into the `:plugins` vector of your
+Put `[lein-licenses "0.1.1"]` into the `:plugins` vector of your
 `:user` profile and run `lein licenses` in your project directory.
 (Not compatible with Leiningen 1.x.)
 
