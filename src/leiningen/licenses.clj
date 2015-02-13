@@ -79,7 +79,7 @@
 (def ^:private license-file-names #{"LICENSE" "LICENSE.txt" "META-INF/LICENSE"
                                     "META-INF/LICENSE.txt" "license/LICENSE"})
 
-(defn- try-raw-license [file]
+(defn- try-raw-license [dep file opts]
   (try
     (if-let [entry (some (partial get-entry file) license-file-names)]
       (with-open [rdr (io/reader (.getInputStream file entry))]
@@ -92,14 +92,21 @@
       (binding [*out* *err*]
         (println "#   " (str file) (class e) (.getMessage e))))))
 
-(defn- get-licenses [dep file repos]
-  (if-let [pom (or (get-pom dep file) (fetch-pom (merge (depvec->coordinates dep)
-                                                  {:repositories repos})))]
-    (->> (iterate get-parent pom)
-         (take-while identity)
+(defn try-pom [dep file opts]
+  (let [packaged-poms (->> (get-pom dep file) (iterate get-parent) (take-while identity))
+        source-poms (->> (fetch-pom (merge opts (depvec->coordinates dep))) (iterate get-parent) (take-while identity))]
+    (->> (concat packaged-poms source-poms)
          (map pom->license-name)
-         (some identity))
-    (try-raw-license file)))
+         (some identity))))
+
+(defn try-fallback [dep file opts]
+  "Unknown")
+
+(defn- get-licenses [dep file opts]
+  (let [fns [try-pom
+             try-raw-license
+             try-fallback]]
+    (some #(% dep file opts) fns)))
 
 
 (def formatters
@@ -134,6 +141,6 @@ Show licenses in CSV format"
          (doseq [[[dep version] file] deps]
            (let [line [(pr-str dep)
                        version
-                       (or (get-licenses [dep version] (JarFile. file) (:repositories project)) "Unknown")]]
+                       (get-licenses [dep version] (JarFile. file) (select-keys project [:repositories]))]]
              (println (format-fn line)))))
        (main/abort "unknown formatter"))))
