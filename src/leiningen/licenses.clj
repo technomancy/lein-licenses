@@ -19,9 +19,24 @@
 
 (def ^:private tag-content (juxt :tag (comp first :content)))
 
-(defn- fetch-pom [{:keys [groupId artifactId version repositories]}]
+(defn- pom->coordinates [pom-xml]
+  (let [coords (->> pom-xml
+                    :content
+                    (filter #(#{:groupId :artifactId :version} (:tag %)))
+                    (map tag-content)
+                    (into {}))]
+    {:group (:groupId coords)
+     :artifact (:artifactId coords)
+     :version (:version coords)}))
+
+(defn- depvec->coordinates [[dep version]]
+  {:group (or (namespace dep) (name dep))
+   :artifact (name dep)
+   :version version})
+
+(defn- fetch-pom [{:keys [group artifact version repositories]}]
   (try
-    (let [dep (symbol groupId artifactId)
+    (let [dep (symbol group artifact)
           [file] (->> (aether/resolve-dependencies
                        :coordinates [[dep version :extension "pom"]]
                        :repositories repositories)
@@ -31,26 +46,22 @@
       (xml/parse file))
     (catch Exception e
       (binding [*out* *err*]
-        (println "#   " (str groupId) (str artifactId) (class e) (.getMessage e))))))
+        (println "#   " (str group) (str artifact) (class e) (.getMessage e))))))
 
 (defn- get-parent [pom]
   (if-let [parent-tag (->> pom
                            :content
                            (filter (tag :parent))
-                           first
-                           :content)]
+                           first)]
     (if-let [parent-coords (->> parent-tag
-                                (map tag-content)
-                                (apply concat)
-                                (apply hash-map))]
+                                pom->coordinates)]
       (fetch-pom parent-coords))))
 
 (defn- pom-license [pom]
   (->> pom :content (filter (tag :licenses))))
 
 (defn- get-pom [dep file]
-  (let [group (or (namespace dep) (name dep))
-        artifact (name dep)
+  (let [{:keys [group artifact]} (depvec->coordinates dep)
         pom-path (format "META-INF/maven/%s/%s/pom.xml" group artifact)
         pom (get-entry file pom-path)]
     (and pom (xml/parse (.getInputStream file pom)))))
@@ -67,11 +78,9 @@
       (binding [*out* *err*]
         (println "#   " (str file) (class e) (.getMessage e))))))
 
-(defn- get-licenses [[dep version] file repos]
-  (if-let [pom (or (get-pom dep file) (fetch-pom {:groupId (or (namespace dep) (name dep))
-                                                  :artifactId (name dep)
-                                                  :version version
-                                                  :repositories repos}))]
+(defn- get-licenses [dep file repos]
+  (if-let [pom (or (get-pom dep file) (fetch-pom (merge (depvec->coordinates dep)
+                                                  {:repositories repos})))]
     (->> (iterate get-parent pom)
          (take-while identity)
          (map pom-license)
