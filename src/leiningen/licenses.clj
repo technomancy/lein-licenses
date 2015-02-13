@@ -19,11 +19,12 @@
 
 (def ^:private tag-content (juxt :tag (comp first :content)))
 
-(defn- fetch-pom [{:keys [groupId artifactId version]}]
+(defn- fetch-pom [{:keys [groupId artifactId version repositories]}]
   (try
     (let [dep (symbol groupId artifactId)
           [file] (->> (aether/resolve-dependencies
-                       :coordinates [[dep version :extension "pom"]])
+                       :coordinates [[dep version :extension "pom"]]
+                       :repositories repositories)
                       (aether/dependency-files)
                       ;; possible we could get the wrong one here?
                       (filter #(.endsWith (str %) ".pom")))]
@@ -66,8 +67,11 @@
       (binding [*out* *err*]
         (println "#   " (str file) (class e) (.getMessage e))))))
 
-(defn- get-licenses [dep file]
-  (if-let [pom (get-pom dep file)]
+(defn- get-licenses [[dep version] file repos]
+  (if-let [pom (or (get-pom dep file) (fetch-pom {:groupId (or (namespace dep) (name dep))
+                                                  :artifactId (name dep)
+                                                  :version version
+                                                  :repositories repos}))]
     (->> (iterate get-parent pom)
          (take-while identity)
          (map pom-license)
@@ -111,6 +115,6 @@ Show licenses in CSV format"
          (doseq [[[dep version] file] deps]
            (let [line [(pr-str dep)
                        version
-                       (or (get-licenses dep (JarFile. file)) "Unknown")]]
+                       (or (get-licenses [dep version] (JarFile. file) (:repositories project)) "Unknown")]]
              (println (format-fn line)))))
        (main/abort "unknown formatter"))))
