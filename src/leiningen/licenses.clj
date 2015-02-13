@@ -60,6 +60,16 @@
 (defn- pom-license [pom]
   (->> pom :content (filter (tag :licenses))))
 
+(defn- pom->license-name [pom]
+  (->> pom
+       pom-license
+       ;; TODO: this might be trimming additional licenses?
+       (map (comp first :content first :content))
+       (filter (tag :name))
+       first
+       :content
+       first))
+
 (defn- get-pom [dep file]
   (let [{:keys [group artifact]} (depvec->coordinates dep)
         pom-path (format "META-INF/maven/%s/%s/pom.xml" group artifact)
@@ -87,12 +97,8 @@
                                                   {:repositories repos})))]
     (->> (iterate get-parent pom)
          (take-while identity)
-         (map pom-license)
-         (apply concat)
-         ;; TODO: this might be trimming additional licenses?
-         (map (comp first :content first :content))
-         (filter (tag :name))
-         first :content first)
+         (map pom->license-name)
+         (some identity))
     (try-raw-license file)))
 
 
