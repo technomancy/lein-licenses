@@ -86,8 +86,7 @@
         (->> rdr
              line-seq
              (remove string/blank?)
-             first
-             string/trim)))
+             first)))
     (catch Exception e
       (binding [*out* *err*]
         (println "#   " (str file) (class e) (.getMessage e))))))
@@ -99,14 +98,31 @@
          (map pom->license-name)
          (some identity))))
 
-(defn try-fallback [dep file opts]
-  "Unknown")
+(defn try-fallback [dep file {:keys [fallbacks]}]
+  (get fallbacks (str (first dep)) "unknown"))
+
+(defn normalize-license [license {:keys [synonyms]}]
+  (let [normalized-license (-> license
+                               string/lower-case
+                               (string/replace #" +" " "))]
+    (or
+      (some (fn [[check-fn license-name]] (when (check-fn normalized-license) license-name)) synonyms)
+      license)))
 
 (defn- get-licenses [dep file opts]
   (let [fns [try-pom
              try-raw-license
              try-fallback]]
-    (some #(% dep file opts) fns)))
+    (-> (some #(% dep file opts) fns)
+        string/trim
+        (normalize-license opts))))
+
+
+(defn safe-slurp [filename]
+  (try
+    (read-string (slurp filename))
+    (catch java.io.FileNotFoundException e
+            {})))
 
 
 (def formatters
@@ -121,6 +137,10 @@
              (str \" (clojure.string/replace text #"\"" "\"\"") \"))]
        (string/join "," (map quote-csv line))))})
 
+(defn prepare-synonyms [synonyms]
+  (reduce (fn [running [syns license]]
+            (assoc running (set (map (comp string/trim string/lower-case) syns)) license))
+          {} synonyms))
 
 (defn licenses
   "List the license of each of your dependencies.
@@ -141,6 +161,9 @@ Show licenses in CSV format"
          (doseq [[[dep version] file] deps]
            (let [line [(pr-str dep)
                        version
-                       (get-licenses [dep version] (JarFile. file) (select-keys project [:repositories]))]]
+                       (get-licenses [dep version] (JarFile. file) {:repositories (:repositories project)
+                                                                    :fallbacks (safe-slurp "fallbacks.edn")
+                                                                    :synonyms (prepare-synonyms
+                                                                                (safe-slurp "synonyms.edn"))})]]
              (println (format-fn line)))))
        (main/abort "unknown formatter"))))
