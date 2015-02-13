@@ -14,6 +14,9 @@
 (defn- tag [tag]
   #(= (:tag %) tag))
 
+(defn- get-entry [^JarFile jar ^String name]
+  (.getEntry jar name))
+
 (def ^:private tag-content (juxt :tag (comp first :content)))
 
 (defn- fetch-pom [{:keys [groupId artifactId version]}]
@@ -27,7 +30,7 @@
       (xml/parse file))
     (catch Exception e
       (binding [*out* *err*]
-        (println "#   " (class e) (.getMessage e))))))
+        (println "#   " (str groupId) (groupId artifactId) (class e) (.getMessage e))))))
 
 (defn- get-parent [pom]
   (if-let [parent-tag (->> pom
@@ -48,25 +51,20 @@
   (let [group (or (namespace dep) (name dep))
         artifact (name dep)
         pom-path (format "META-INF/maven/%s/%s/pom.xml" group artifact)
-        jar (JarFile. file)
-        pom (.getEntry jar pom-path)]
-    (and pom (xml/parse (.getInputStream jar pom)))))
+        pom (get-entry file pom-path)]
+    (and pom (xml/parse (.getInputStream file pom)))))
 
 (def ^:private license-file-names #{"LICENSE" "LICENSE.txt" "META-INF/LICENSE"
                                     "META-INF/LICENSE.txt" "license/LICENSE"})
 
-(defn- get-entry [jar name]
-  (.getEntry jar name))
-
 (defn- try-raw-license [file]
   (try
-    (let [jar (JarFile. file)
-          entry (some #(.getEntry jar %) license-file-names)]
-      (with-open [rdr (io/reader (.getInputStream jar entry))]
+    (if-let [entry (some (partial get-entry file) license-file-names)]
+      (with-open [rdr (io/reader (.getInputStream file entry))]
         (string/trim (first (remove string/blank? (line-seq rdr))))))
     (catch Exception e
       (binding [*out* *err*]
-        (println "#   " (class e) (.getMessage e))))))
+        (println "#   " (str file) (class e) (.getMessage e))))))
 
 (defn- get-licenses [dep file]
   (if-let [pom (get-pom dep file)]
@@ -113,6 +111,6 @@ Show licenses in CSV format"
          (doseq [[[dep version] file] deps]
            (let [line [(pr-str dep)
                        version
-                       (or (get-licenses dep file) "Unknown")]]
+                       (or (get-licenses dep (JarFile. file)) "Unknown")]]
              (println (format-fn line)))))
        (main/abort "unknown formatter"))))
