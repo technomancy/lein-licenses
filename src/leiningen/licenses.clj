@@ -30,7 +30,7 @@
       (xml/parse file))
     (catch Exception e
       (binding [*out* *err*]
-        (println "#   " (str groupId) (groupId artifactId) (class e) (.getMessage e))))))
+        (println "#   " (str groupId) (str artifactId) (class e) (.getMessage e))))))
 
 (defn- get-parent [pom]
   (if-let [parent-tag (->> pom
