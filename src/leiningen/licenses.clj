@@ -73,7 +73,11 @@
   (try
     (if-let [entry (some (partial get-entry file) license-file-names)]
       (with-open [rdr (io/reader (.getInputStream file entry))]
-        (string/trim (first (remove string/blank? (line-seq rdr))))))
+        (->> rdr
+             line-seq
+             (remove string/blank?)
+             first
+             string/trim)))
     (catch Exception e
       (binding [*out* *err*]
         (println "#   " (str file) (class e) (.getMessage e))))))
