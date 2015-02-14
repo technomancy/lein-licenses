@@ -1,0 +1,13 @@
+;; strings in sets are case-insensitive
+
+{#{"Eclipse Public License" "Eclipse Public License 1.0" "EPL"} "eclipse"
+ #{"MIT" "MIT License" "The MIT license"} "mit"
+ #{"Apache License Version 2.0"
+   "The Apache Software License, Version 2.0"
+   "Apache Software License - Version 2.0"
+   "Apache License"
+   "Apache License, Version 2.0"
+   "Apache 2"} "apache"
+ #{"CDDL" "CDDL License" "COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.0"} "cddl"
+ #{"Snaptree License"} "snaptree"
+ #{"BSD"} "bsd"}
