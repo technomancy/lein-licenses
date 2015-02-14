@@ -14,94 +14,147 @@
 (defn- tag [tag]
   #(= (:tag %) tag))
 
+(defn- get-entry [^JarFile jar ^String name]
+  (.getEntry jar name))
+
 (def ^:private tag-content (juxt :tag (comp first :content)))
 
-(defn- fetch-pom [{:keys [groupId artifactId version]}]
+(defn- pom->coordinates [pom-xml]
+  (let [coords (->> pom-xml
+                    :content
+                    (filter #(#{:groupId :artifactId :version} (:tag %)))
+                    (map tag-content)
+                    (into {}))]
+    {:group (:groupId coords)
+     :artifact (:artifactId coords)
+     :version (:version coords)}))
+
+(defn- depvec->coordinates [[dep version]]
+  {:group (or (namespace dep) (name dep))
+   :artifact (name dep)
+   :version version})
+
+(defn- fetch-pom [{:keys [group artifact version repositories]}]
   (try
-    (let [dep (symbol groupId artifactId)
+    (let [dep (symbol group artifact)
           [file] (->> (aether/resolve-dependencies
-                       :coordinates [[dep version :extension "pom"]])
+                       :coordinates [[dep version :extension "pom"]]
+                       :repositories repositories)
                       (aether/dependency-files)
                       ;; possible we could get the wrong one here?
                       (filter #(.endsWith (str %) ".pom")))]
       (xml/parse file))
     (catch Exception e
       (binding [*out* *err*]
-        (println "#   " (class e) (.getMessage e))))))
+        (println "#   " (str group) (str artifact) (class e) (.getMessage e))))))
 
 (defn- get-parent [pom]
   (if-let [parent-tag (->> pom
                            :content
                            (filter (tag :parent))
-                           first
-                           :content)]
+                           first)]
     (if-let [parent-coords (->> parent-tag
-                                (map tag-content)
-                                (apply concat)
-                                (apply hash-map))]
+                                pom->coordinates)]
       (fetch-pom parent-coords))))
 
 (defn- pom-license [pom]
   (->> pom :content (filter (tag :licenses))))
 
+(defn- pom->license-name [pom]
+  (->> pom
+       pom-license
+       ;; TODO: this might be trimming additional licenses?
+       (map (comp first :content first :content))
+       (filter (tag :name))
+       first
+       :content
+       first))
+
 (defn- get-pom [dep file]
-  (let [group (or (namespace dep) (name dep))
-        artifact (name dep)
+  (let [{:keys [group artifact]} (depvec->coordinates dep)
         pom-path (format "META-INF/maven/%s/%s/pom.xml" group artifact)
-        jar (JarFile. file)
-        pom (.getEntry jar pom-path)]
-    (and pom (xml/parse (.getInputStream jar pom)))))
+        pom (get-entry file pom-path)]
+    (and pom (xml/parse (.getInputStream file pom)))))
 
 (def ^:private license-file-names #{"LICENSE" "LICENSE.txt" "META-INF/LICENSE"
                                     "META-INF/LICENSE.txt" "license/LICENSE"})
 
-(defn- get-entry [jar name]
-  (.getEntry jar name))
-
-(defn- try-raw-license [file]
+(defn- try-raw-license [dep file opts]
   (try
-    (let [jar (JarFile. file)
-          entry (some #(.getEntry jar %) license-file-names)]
-      (with-open [rdr (io/reader (.getInputStream jar entry))]
-        (string/trim (first (remove string/blank? (line-seq rdr))))))
+    (if-let [entry (some (partial get-entry file) license-file-names)]
+      (with-open [rdr (io/reader (.getInputStream file entry))]
+        (->> rdr
+             line-seq
+             (remove string/blank?)
+             first)))
     (catch Exception e
       (binding [*out* *err*]
-        (println "#   " (class e) (.getMessage e))))))
+        (println "#   " (str file) (class e) (.getMessage e))))))
 
-(defn- get-licenses [dep file]
-  (if-let [pom (get-pom dep file)]
-    (->> (iterate get-parent pom)
-         (take-while identity)
-         (map pom-license)
-         (apply concat)
-         ;; TODO: this might be trimming additional licenses?
-         (map (comp first :content first :content))
-         (filter (tag :name))
-         first :content first)
-    (try-raw-license file)))
+(defn try-pom [dep file opts]
+  (let [packaged-poms (->> (get-pom dep file) (iterate get-parent) (take-while identity))
+        source-poms (->> (fetch-pom (merge opts (depvec->coordinates dep))) (iterate get-parent) (take-while identity))]
+    (->> (concat packaged-poms source-poms)
+         (map pom->license-name)
+         (some identity))))
 
+(defn try-fallback [dep file {:keys [fallbacks]}]
+  (get fallbacks (str (first dep)) "unknown"))
+
+(defn normalize-license [license {:keys [synonyms]}]
+  (let [normalized-license (-> license
+                               string/lower-case
+                               (string/replace #" +" " "))]
+    (or
+      (some (fn [[check-fn license-name]] (when (check-fn normalized-license) license-name)) synonyms)
+      license)))
+
+(defn- get-licenses [[dep file] opts]
+  (let [fns [try-pom
+             try-raw-license
+             try-fallback]]
+    (-> (some #(% dep file opts) fns)
+        string/trim
+        (normalize-license opts))))
+
+
+(defn safe-slurp [filename]
+  (try
+    (read-string (slurp filename))
+    (catch java.io.FileNotFoundException e
+            {})))
 
 (def formatters
   {":text"
-   (fn [line]
-     (string/join " - " line))
+   (fn [lines]
+     (->> lines
+          (map (partial string/join " - "))
+          (string/join "\n")))
 
    ":csv"
-   (fn [line]
-     (let [quote-csv
-           (fn [text]
-             (str \" (clojure.string/replace text #"\"" "\"\"") \"))]
-       (string/join "," (map quote-csv line))))})
+   (fn [lines]
+     (->> lines
+          (map (fn [parts] (string/join "," (map (partial format "\"%s\"") parts))))
+          (string/join "\n")))
 
+   ":edn"
+   (fn [lines]
+     (with-out-str (pp/pprint (map
+                                (fn [[artifact version license]]
+                                  [[artifact version] license])
+                                lines))))})
+
+(defn prepare-synonyms [synonyms]
+  (reduce (fn [running [syns license]]
+            (assoc running (set (map (comp string/trim string/lower-case) syns)) license))
+          {} synonyms))
 
 (defn licenses
   "List the license of each of your dependencies.
 
-USAGE: lein licenses [:text]
-Show license information in the default text format
+USAGE: lein licenses [:format]
 
-USAGE lein licenses :csv
-Show licenses in CSV format"
+Supported output formats: :text (default), :csv, :edn"
 
   ([project]
      (licenses project ":text"))
@@ -109,10 +162,14 @@ Show licenses in CSV format"
   ([project output-style]
      (if-let [format-fn (formatters output-style)]
        (let [deps (#'classpath/get-dependencies :dependencies project)
-             deps (zipmap (keys deps) (aether/dependency-files deps))]
-         (doseq [[[dep version] file] deps]
-           (let [line [(pr-str dep)
-                       version
-                       (or (get-licenses dep file) "Unknown")]]
-             (println (format-fn line)))))
+             deps (zipmap (keys deps) (map #(JarFile. %) (aether/dependency-files deps)))
+             opts {:repositories (:repositories project)
+                   :fallbacks (safe-slurp "fallbacks.edn")
+                   :synonyms (prepare-synonyms (safe-slurp "synonyms.edn"))}]
+            (->> deps
+                 (map #(conj % (get-licenses % opts)))
+                 (map (fn [[[artifact version] file license]]
+                        [artifact version license]))
+                 format-fn
+                 println))
        (main/abort "unknown formatter"))))
