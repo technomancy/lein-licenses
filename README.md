@@ -2,15 +2,46 @@
 
 A Leiningen plugin to list the license of each of your dependencies.
 
-Looks in `pom.xml` inside the jar, `<parent>` declarations in the pom,
-as well as files named `LICENSE.txt`, etc. inside the jar.
+## Installation
+
+Put 
+```clojure
+[lein-licenses "0.2.0"]
+```
+
+into the `:plugins` vector of your `:user` profile.
+
+(Not compatible with Leiningen 1.x.)
 
 ## Usage
 
-Put `[lein-licenses "0.1.1"]` into the `:plugins` vector of your
-`:user` profile and run `lein licenses` in your project directory.
-(Not compatible with Leiningen 1.x.)
+Run `lein licenses` in your project directory.
 
+Pass `:csv` or `:edn` to change output format:
+
+```
+lein licenses :edn
+```
+
+## Lookup order
+
+1. `pom.xml` inside the jar, including `<parent>` declarations.
+2. `<artifact>.pom` file, including `<parent>` declarations.
+3. License files (`LICENCE`, `LICENCE.txt`, etc) inside the jar.
+4. `fallbacks.edn` in the project directory.
+
+## Fallbacks
+
+Fallbacks are only used if all other locations failed.
+
+Example `fallbacks.edn` file could be found in the `examples` directory.
+
+## License name normalisation
+
+Since license names don’t have any specific format, it’s not uncommon to get different names for the same license.
+Normalisation mechanism checks each license string against a map of synonyms defined in `synonyms.edn`, and returns a canonical license name on match.
+
+Example `synonyms.edn` is available in `examples` directory.
 
 ## Example
 
