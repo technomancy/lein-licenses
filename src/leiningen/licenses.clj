@@ -109,7 +109,7 @@
       (some (fn [[check-fn license-name]] (when (check-fn normalized-license) license-name)) synonyms)
       license)))
 
-(defn- get-licenses [dep file opts]
+(defn- get-licenses [[dep file] opts]
   (let [fns [try-pom
              try-raw-license
              try-fallback]]
@@ -124,18 +124,25 @@
     (catch java.io.FileNotFoundException e
             {})))
 
-
 (def formatters
   {":text"
-   (fn [line]
-     (string/join " - " line))
+   (fn [lines]
+     (->> lines
+          (map (partial string/join " - "))
+          (string/join "\n")))
 
    ":csv"
-   (fn [line]
-     (let [quote-csv
-           (fn [text]
-             (str \" (clojure.string/replace text #"\"" "\"\"") \"))]
-       (string/join "," (map quote-csv line))))})
+   (fn [lines]
+     (->> lines
+          (map (fn [parts] (string/join "," (map (partial format "\"%s\"") parts))))
+          (string/join "\n")))
+
+   ":edn"
+   (fn [lines]
+     (with-out-str (pp/pprint (map
+                                (fn [[artifact version license]]
+                                  [[artifact version] license])
+                                lines))))})
 
 (defn prepare-synonyms [synonyms]
   (reduce (fn [running [syns license]]
@@ -145,11 +152,9 @@
 (defn licenses
   "List the license of each of your dependencies.
 
-USAGE: lein licenses [:text]
-Show license information in the default text format
+USAGE: lein licenses [:format]
 
-USAGE lein licenses :csv
-Show licenses in CSV format"
+Supported output formats: :text (default), :csv, :edn"
 
   ([project]
      (licenses project ":text"))
@@ -157,13 +162,14 @@ Show licenses in CSV format"
   ([project output-style]
      (if-let [format-fn (formatters output-style)]
        (let [deps (#'classpath/get-dependencies :dependencies project)
-             deps (zipmap (keys deps) (aether/dependency-files deps))]
-         (doseq [[[dep version] file] deps]
-           (let [line [(pr-str dep)
-                       version
-                       (get-licenses [dep version] (JarFile. file) {:repositories (:repositories project)
-                                                                    :fallbacks (safe-slurp "fallbacks.edn")
-                                                                    :synonyms (prepare-synonyms
-                                                                                (safe-slurp "synonyms.edn"))})]]
-             (println (format-fn line)))))
+             deps (zipmap (keys deps) (map #(JarFile. %) (aether/dependency-files deps)))
+             opts {:repositories (:repositories project)
+                   :fallbacks (safe-slurp "fallbacks.edn")
+                   :synonyms (prepare-synonyms (safe-slurp "synonyms.edn"))}]
+            (->> deps
+                 (map #(conj % (get-licenses % opts)))
+                 (map (fn [[[artifact version] file license]]
+                        [artifact version license]))
+                 format-fn
+                 println))
        (main/abort "unknown formatter"))))
