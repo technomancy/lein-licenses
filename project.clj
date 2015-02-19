@@ -1,4 +1,4 @@
-(defproject lein-licenses "0.2.0"
+(defproject lein-licenses "0.2.1-SNAPSHOT"
   :description "List the license of each of your dependencies."
   :url "https://github.com/technomancy/lein-licenses"
   :license {:name "Eclipse Public License"
