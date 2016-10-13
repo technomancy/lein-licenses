@@ -161,7 +161,7 @@ Supported output formats: :text (default), :csv, :edn"
 
   ([project output-style]
      (if-let [format-fn (formatters output-style)]
-       (let [deps (#'classpath/get-dependencies :dependencies project)
+       (let [deps (#'classpath/get-dependencies :dependencies :managed-dependencies project)
              deps (zipmap (keys deps) (map #(JarFile. %) (aether/dependency-files deps)))
              opts {:repositories (:repositories project)
                    :fallbacks (safe-slurp "fallbacks.edn")
