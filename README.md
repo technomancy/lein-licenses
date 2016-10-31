@@ -4,14 +4,18 @@ A Leiningen plugin to list the license of each of your dependencies.
 
 ## Installation
 
-Put 
+If you are using Leiningen 2.7.0+, put 
 ```clojure
-[lein-licenses "0.2.0"]
+[lein-licenses "0.2.1"]
 ```
 
 into the `:plugins` vector of your `:user` profile.
 
-(Not compatible with Leiningen 1.x.)
+
+
+For leiningen < 2.7.0, use version `"0.2.0"`.
+
+Not compatible with Leiningen 1.x.
 
 ## Usage
 
