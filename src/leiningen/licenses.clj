@@ -154,7 +154,13 @@
 
 USAGE: lein licenses [:format]
 
-Supported output formats: :text (default), :csv, :edn"
+Supported output formats: :text (default), :csv, :edn
+
+If a fallbacks.edn file is present in the current directory, it will be loaded
+and used for license fallbacks (overrides).
+
+If a synonyms.edn file is present in the current directory, it will be loaded
+and used for license name normalisation."
 
   ([project]
      (licenses project ":text"))

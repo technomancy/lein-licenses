@@ -1,2 +1,14 @@
-{"ring" "EPL 1.0"
- "javax.servlet/servlet-api" "CDDL"}
+{
+  "ring" "EPL 1.0"
+  "javax.servlet/servlet-api" "CDDL"
+  "colorize" "EPL 1.0"
+  "mvxcvi/arrangement" "Unlicense"   ; Note: doesn't work because lein-licenses thinks this is "Public Domain" (which isn't a license), and therefore won't use this fallback
+  "mvxcvi/whidbey" "Unlicense"       ; Note: doesn't work because lein-licenses thinks this is "Public Domain" (which isn't a license), and therefore won't use this fallback
+  "mvxcvi/puget" "Unlicense"         ; Note: doesn't work because lein-licenses thinks this is "Public Domain" (which isn't a license), and therefore won't use this fallback
+  "org.clojars.brenton/google-diff-match-patch" "Apache 2.0"
+  "com.rpl/specter" "Apache 2.0"
+  "cprop" "EPL 1.0"
+  "mount" "EPL 1.0"
+  "org.beanshell/bsh" "LGPL-2.1+ OR SPL-1.0"
+  "org.hamcrest/hamcrest-core" "BSD-2-Clause"
+}
