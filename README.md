@@ -47,7 +47,7 @@ The normalisation mechanism checks each license string against a map of synonyms
 
 A simple example `synonyms.edn` is [available in the `examples` directory](https://github.com/technomancy/lein-licenses/blob/master/examples/synonyms.edn).
 
-A more comprehensive [SPDX](https://spdx.org/) `synonyms.edn` file [is also available in in the `examples` directory](https://github.com/technomancy/lein-licenses/blob/master/examples/synonyms-spdx.edn).  Note that lein-licenses is not 100% SPDX compliant, since its license text analysis logic is more simplistic than that [recommended by SPDX](https://spdx.org/spdx-license-list/matching-guidelines).  It also mistakenly reports "Public Domain" as a license, when in fact [public domain is a concept distinct from copyright licensing](http://wiki.spdx.org/view/Legal_Team/Decisions/Dealing_with_Public_Domain_within_SPDX_Files).
+A more comprehensive [SPDX](https://spdx.org/) `synonyms.edn` file [is also available in the `examples` directory](https://github.com/technomancy/lein-licenses/blob/master/examples/synonyms-spdx.edn).  Note that lein-licenses is not 100% SPDX compliant, since its license text analysis logic is more simplistic than that [recommended by SPDX](https://spdx.org/spdx-license-list/matching-guidelines).  It also mistakenly reports "Public Domain" as a license, when in fact [public domain is a concept distinct from copyright licensing](http://wiki.spdx.org/view/Legal_Team/Decisions/Dealing_with_Public_Domain_within_SPDX_Files).
 
 ## Examples
 
