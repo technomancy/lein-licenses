@@ -4,7 +4,7 @@ A Leiningen plugin to list the license of each of your dependencies.
 
 ## Installation
 
-If you are using Leiningen 2.7.0+, put 
+If you are using Leiningen 2.7.0+, put
 ```clojure
 [lein-licenses "0.2.1"]
 ```
@@ -38,17 +38,20 @@ lein licenses :edn
 
 Fallbacks are only used if all other locations failed.
 
-Example `fallbacks.edn` file could be found in the `examples` directory.
+An example `fallbacks.edn` file [can be found in the `examples` directory](https://github.com/technomancy/lein-licenses/blob/master/examples/fallbacks.edn).
 
 ## License name normalisation
 
 Since license names don’t have any specific format, it’s not uncommon to get different names for the same license.
-Normalisation mechanism checks each license string against a map of synonyms defined in `synonyms.edn`, and returns a canonical license name on match.
+The normalisation mechanism checks each license string against a map of synonyms defined in `synonyms.edn` in the project directory, and returns a canonical license name on match.
 
-Example `synonyms.edn` is available in `examples` directory.
+A simple example `synonyms.edn` is [available in the `examples` directory](https://github.com/technomancy/lein-licenses/blob/master/examples/synonyms.edn).
 
-## Example
+A more comprehensive [SPDX](https://spdx.org/) `synonyms.edn` file [is also available in the `examples` directory](https://github.com/technomancy/lein-licenses/blob/master/examples/synonyms-spdx.edn).  Note that lein-licenses is not 100% SPDX compliant, since its license text analysis logic is more simplistic than that [recommended by SPDX](https://spdx.org/spdx-license-list/matching-guidelines).  It also mistakenly reports "Public Domain" as a license, when in fact [public domain is a concept distinct from copyright licensing](http://wiki.spdx.org/view/Legal_Team/Decisions/Dealing_with_Public_Domain_within_SPDX_Files).
 
+## Examples
+
+```shell
     $ lein licenses # in the leiningen-core library
     nekohtml/xercesMinimal - Unknown
     org.apache.maven.wagon/wagon-http - The Apache Software License, Version 2.0
@@ -82,6 +85,22 @@ Example `synonyms.edn` is available in `examples` directory.
     org.sonatype.aether/aether-connector-wagon - Eclipse Public License, Version 1.0
     org.sonatype.sisu/sisu-inject-plexus - Eclipse Public License, Version 1.0
     ordered - Unknown
+```
+
+Obtaining the list of unique licenses:
+
+```shell
+    $ lein licenses :csv | cut -d , -f3 | sort | uniq   # In the lein-licenses library
+    "Apache License 2.0"
+    "Apache Sofware License 2.0"
+    "Eclipse Public License 1.0"
+    "Eclipse Public License"
+    "Public Domain"
+    "The BSD License"
+    "unknown"
+```
+
+This example nicely demonstrates why [license name normalisation](#license-name-normalisation) is desirable.
 
 ## License
 
