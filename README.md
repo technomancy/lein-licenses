@@ -85,6 +85,6 @@ Example `synonyms.edn` is available in `examples` directory.
 
 ## License
 
-Copyright © 2012 Phil Hagelberg
+Copyright © 2012-2017 Phil Hagelberg and contributors
 
 Distributed under the Eclipse Public License, the same as Clojure.

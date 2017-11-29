@@ -57,18 +57,17 @@
                                 pom->coordinates)]
       (fetch-pom parent-coords))))
 
-(defn- pom-license [pom]
-  (->> pom :content (filter (tag :licenses))))
+(defn- pom-license-elems [pom]
+  (for [elem (:content pom)
+        :when (= (:tag elem) :licenses)
+        license (:content elem)]
+    license))
 
-(defn- pom->license-name [pom]
-  (->> pom
-       pom-license
-       ;; TODO: this might be trimming additional licenses?
-       (map (comp first :content first :content))
-       (filter (tag :name))
-       first
-       :content
-       first))
+(defn- pom->license-names [pom]
+  (for [license-elem (pom-license-elems pom)
+        elem (:content license-elem)
+        :when (= (:tag elem) :name)]
+    (first (:content elem))))
 
 (defn- get-pom [dep file]
   (let [{:keys [group artifact]} (depvec->coordinates dep)
@@ -95,7 +94,8 @@
   (let [packaged-poms (->> (get-pom dep file) (iterate get-parent) (take-while identity))
         source-poms (->> (fetch-pom (merge opts (depvec->coordinates dep))) (iterate get-parent) (take-while identity))]
     (->> (concat packaged-poms source-poms)
-         (map pom->license-name)
+         (map pom->license-names)
+         (apply concat)
          (some identity))))
 
 (defn try-fallback [dep file {:keys [fallbacks]}]
