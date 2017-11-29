@@ -1,17 +1,16 @@
 # lein-licenses
 
-A Leiningen plugin to list the license of each of your dependencies.
+A Leiningen plugin to try to detect the license of each of your dependencies.
+
+Please note that this is just a heuristic and can result in inaccurate readings.
 
 ## Installation
 
 If you are using Leiningen 2.7.0+, put 
 ```clojure
-[lein-licenses "0.2.1"]
+[lein-licenses "0.2.2"]
 ```
-
 into the `:plugins` vector of your `:user` profile.
-
-
 
 For leiningen < 2.7.0, use version `"0.2.0"`.
 
@@ -50,38 +49,48 @@ Example `synonyms.edn` is available in `examples` directory.
 ## Example
 
     $ lein licenses # in the leiningen-core library
-    nekohtml/xercesMinimal - Unknown
-    org.apache.maven.wagon/wagon-http - The Apache Software License, Version 2.0
-    org.sonatype.aether/aether-connector-file - Eclipse Public License, Version 1.0
-    classlojure - Unknown
-    org.codehaus.plexus/plexus-interpolation - The Apache Software License, Version 2.0
-    org.sonatype.sisu/sisu-inject-bean - The Apache Software License, Version 2.0
-    org.codehaus.plexus/plexus-component-annotations - The Apache Software License, Version 2.0
-    org.codehaus.plexus/plexus-utils - The Apache Software License, Version 2.0
-    commons-logging - The Apache Software License, Version 2.0
-    com.cemerick/pomegranate - Eclipse Public License 1.0
-    org.apache.maven/maven-model-builder - The Apache Software License, Version 2.0
-    org.clojure/tools.macro - Eclipse Public License 1.0
-    org.sonatype.aether/aether-util - Eclipse Public License, Version 1.0
-    nekohtml - Apache License
-    org.apache.maven/maven-aether-provider - The Apache Software License, Version 2.0
-    org.sonatype.aether/aether-api - Eclipse Public License, Version 1.0
-    org.apache.maven.wagon/wagon-http-shared - The Apache Software License, Version 2.0
-    commons-codec - /*
-    org.clojure/clojure - Eclipse Public License 1.0
-    org.codehaus.plexus/plexus-classworlds - The Apache Software License, Version 2.0
-    org.sonatype.aether/aether-impl - Eclipse Public License, Version 1.0
-    org.sonatype.sisu/sisu-guice - Apache License
-    robert/hooke - Unknown
-    org.apache.maven/maven-repository-metadata - The Apache Software License, Version 2.0
-    org.sonatype.aether/aether-spi - Eclipse Public License, Version 1.0
-    commons-httpclient - Apache License
-    useful - Unknown
-    org.apache.maven/maven-model - The Apache Software License, Version 2.0
-    org.apache.maven.wagon/wagon-provider-api - The Apache Software License, Version 2.0
-    org.sonatype.aether/aether-connector-wagon - Eclipse Public License, Version 1.0
-    org.sonatype.sisu/sisu-inject-plexus - Eclipse Public License, Version 1.0
-    ordered - Unknown
+    org.clojure/clojure - 1.8.0 - Eclipse Public License 1.0
+    org.apache.httpcomponents/httpclient - 4.5.3 - Apache License, Version 2.0
+    commons-io - 2.5 - Apache License, Version 2.0
+    org.apache.maven.resolver/maven-resolver-transport-wagon - 1.0.3 - Apache License, Version 2.0
+    org.clojure/tools.macro - 0.1.5 - Eclipse Public License 1.0
+    org.apache.maven/maven-resolver-provider - 3.5.0 - Apache License, Version 2.0
+    org.apache.maven.wagon/wagon-provider-api - 2.12 - Apache License, Version 2.0
+    com.google.guava/guava - 20.0 - The Apache Software License, Version 2.0
+    com.hypirion/io - 0.3.1 - Eclipse Public License
+    com.cemerick/pomegranate - 0.4.0 - Eclipse Public License 1.0
+    org.codehaus.plexus/plexus-component-annotations - 1.7.1 - Apache License, Version 2.0
+    org.clojure/tools.nrepl - 0.2.12 - Eclipse Public License 1.0
+    org.apache.maven.resolver/maven-resolver-transport-http - 1.0.3 - Apache License, Version 2.0
+    clojure-complete - 0.2.4 - Eclipse Public License
+    robert/hooke - 1.3.0 - Eclipse Public License
+    org.apache.maven.resolver/maven-resolver-connector-basic - 1.0.3 - Apache License, Version 2.0
+    org.apache.maven.resolver/maven-resolver-util - 1.0.3 - Apache License, Version 2.0
+    org.tcrawley/dynapath - 1.0.0 - Eclipse Public License
+    org.apache.maven.wagon/wagon-http-shared - 2.12 - Apache License, Version 2.0
+    org.jsoup/jsoup - 1.7.2 - The MIT License
+    org.apache.maven.resolver/maven-resolver-impl - 1.0.3 - Apache License, Version 2.0
+    org.slf4j/slf4j-nop - 1.7.22 - MIT License
+    bultitude - 0.2.8 - Eclipse Public License 1.0
+    org.slf4j/slf4j-api - 1.7.22 - MIT License
+    org.apache.maven/maven-model - 3.5.0 - Apache License, Version 2.0
+    org.apache.commons/commons-lang3 - 3.5 - Apache License, Version 2.0
+    org.slf4j/jcl-over-slf4j - 1.7.22 - MIT License
+    io.aviso/pretty - 0.1.20 - Apache Sofware License 2.0
+    org.apache.maven/maven-model-builder - 3.5.0 - Apache License, Version 2.0
+    org.apache.httpcomponents/httpcore - 4.4.4 - Apache License, Version 2.0
+    org.codehaus.plexus/plexus-utils - 3.0.24 - Apache License, Version 2.0
+    org.apache.maven/maven-builder-support - 3.5.0 - Apache License, Version 2.0
+    org.apache.maven.resolver/maven-resolver-transport-file - 1.0.3 - Apache License, Version 2.0
+    org.apache.maven/maven-repository-metadata - 3.5.0 - Apache License, Version 2.0
+    org.codehaus.plexus/plexus-interpolation - 1.24 - Apache License, Version 2.0
+    commons-logging - 1.2 - The Apache Software License, Version 2.0
+    org.apache.maven.wagon/wagon-http - 2.12 - Apache License, Version 2.0
+    commons-codec - 1.9 - The Apache Software License, Version 2.0
+    org.flatland/classlojure - 0.7.1 - Eclipse Public License - v 1.0
+    org.apache.maven.resolver/maven-resolver-api - 1.0.3 - Apache License, Version 2.0
+    org.apache.maven/maven-artifact - 3.5.0 - Apache License, Version 2.0
+    org.apache.maven.resolver/maven-resolver-spi - 1.0.3 - Apache License, Version 2.0
 
 ## License
 
