@@ -4,6 +4,8 @@ A Leiningen plugin to try to detect the license of each of your dependencies.
 
 Please note that this is just a heuristic and can result in inaccurate readings.
 
+This project is not under active development; if you wish to make a contribution please email me and I can move this repository to a new host to make further changes.
+
 ## Installation
 
 If you are using Leiningen 2.7.0+, put 
